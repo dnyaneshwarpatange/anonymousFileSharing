@@ -1,0 +1,6 @@
+.env
+node_modules
+drive-e8e69-firebase-adminsdk-58mm5-2c15b52045.json
+dist
+dist-ssr
+*.local
