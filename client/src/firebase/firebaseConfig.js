@@ -5,14 +5,15 @@ import { getStorage } from 'firebase/storage';
 
 // Firebase configuration using environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBPUdDFl4nPIqEEw9iXMqi5pIyOXZNiKUo",
+  authDomain: "drive-e8e69.firebaseapp.com",
+  databaseURL: "https://drive-e8e69-default-rtdb.firebaseio.com",
+  projectId: "drive-e8e69",
+  storageBucket: "drive-e8e69.appspot.com",
+  messagingSenderId: "842498275577",
+  appId: "1:842498275577:web:0d722f7ea41b25e56b8a28"
 };
+
 
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
