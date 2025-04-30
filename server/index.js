@@ -1,16 +1,25 @@
-require("dotenv").config(); // Import dotenv to load variables from .env file
+require("dotenv").config();
 const express = require("express");
 const cron = require("node-cron");
 const admin = require("firebase-admin");
 const path = require("path");
 
 // Load the service account key from the .env file
-const serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH));
+let serviceAccount;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
+    serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH));
+  } else {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY_PATH not found in environment variables');
+  }
+} catch (error) {
+  console.error('Error loading Firebase service account:', error);
+  process.exit(1);
+}
 
-// Initialize Firebase with the environment variables
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_BUCKET_NAME, // Use the bucket name from .env
+  storageBucket: process.env.FIREBASE_BUCKET_NAME,
 });
 
 const db = admin.firestore();
@@ -19,9 +28,8 @@ const bucket = admin.storage().bucket();
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000; // Default to 5000 if PORT is not specified in .env
+const PORT = process.env.PORT || 5000;
 
-// Function to delete expired files
 const deleteExpiredFiles = async () => {
   try {
     const now = Date.now();
@@ -40,12 +48,9 @@ const deleteExpiredFiles = async () => {
       const fileId = doc.id;
 
       try {
-        // Delete the file from Firebase Storage
         const fileRef = bucket.file(`files/${fileId}`);
-        await fileRef.delete();
-
-        // Delete the file metadata from Firestore
-        await doc.ref.delete();
+        await fileRef.delete(); // Delete from Firebase storage
+        await doc.ref.delete(); // Delete from Firestore
         console.log(`Deleted expired file: ${fileId}`);
       } catch (error) {
         console.error(`Error deleting file ${fileId}:`, error);
@@ -59,10 +64,10 @@ const deleteExpiredFiles = async () => {
   }
 };
 
-// Schedule cleanup to run every minute
+// Run cleanup every minute
 cron.schedule("* * * * *", deleteExpiredFiles);
 
-// API route to trigger cleanup manually
+// Manually trigger cleanup
 app.post("/cleanup", async (req, res) => {
   try {
     await deleteExpiredFiles();
@@ -73,7 +78,7 @@ app.post("/cleanup", async (req, res) => {
   }
 });
 
-// API route to fetch file information by ID
+// Endpoint to fetch file by ID
 app.get("/files/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -91,7 +96,6 @@ app.get("/files/:id", async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

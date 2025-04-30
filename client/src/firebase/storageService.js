@@ -1,68 +1,55 @@
-// src/firebase/storageService.js
-import { db, storage } from './firebaseConfig';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { collection, doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { storage, db } from './firebaseConfig'; // Ensure Firebase is initialized correctly
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase v9+ modular SDK
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore'; // Firebase v9+ Firestore SDK
 
-// Upload file to Firebase Storage
-export const uploadFile = async (file, fileId) => {
-  const fileRef = ref(storage, `files/${fileId}`);
-  await uploadBytes(fileRef, file);
-  const fileUrl = await getDownloadURL(fileRef);
+// Function to upload the file to Firebase Storage
+export const uploadFile = async (file) => {
+  if (!file) {
+    throw new Error('No file provided for upload');
+  }
 
-  return fileUrl;
-};
-
-// Store file info and expiration time in Firestore
-// Store file info and expiration time in Firestore
-export const storeFileInfo = async (fileId, fileUrl, expirationTimeStamp) => {
   try {
-    await setDoc(doc(db, "files", fileId), {
-      url: fileUrl,
-      expiration: expirationTimeStamp,
-      createdAt: Date.now(),
-    });
+    const fileId = uuidv4();
+    const storageRef = ref(storage, `files/${fileId}`);
+    
+    // Upload the file to storage
+    const snapshot = await uploadBytes(storageRef, file);
+    if (!snapshot) {
+      throw new Error('Upload failed - no snapshot returned');
+    }
+
+    // Get the download URL after uploading
+    const url = await getDownloadURL(storageRef);
+    if (!url) {
+      throw new Error('Failed to get download URL');
+    }
+
+    return { url, fileId };
   } catch (error) {
-    console.error("Error storing file info:", error);
-    throw error;
+    console.error('Upload error:', error);
+    throw new Error(`Error uploading file: ${error.message}`);
   }
 };
 
-
-// Check if the file has expired or been accessed
-export const checkFileAccess = async (fileId) => {
-  const fileDoc = await getDoc(doc(db, 'files', fileId));
-
-  if (fileDoc.exists()) {
-    const data = fileDoc.data();
-    const currentTime = Date.now();
-
-    if (currentTime > data.expiration) {
-      await deleteFileFromStorage(fileId);
-      await deleteFileFromFirestore(fileId);
-      return { expired: true };
-    }
-
-    if (data.accessCount >= 1) {
-      return { usedOnce: true };
-    }
-
-    await updateDoc(doc(db, 'files', fileId), {
-      accessCount: data.accessCount + 1,
-    });
-
-    return { fileUrl: data.url, expired: false, usedOnce: false };
-  } else {
-    return { expired: true };
+// Function to store file metadata in Firestore
+export const storeFileInfo = async (fileId, url, expirationTimeStamp) => {
+  if (!fileId || !url || !expirationTimeStamp) {
+    throw new Error('Missing required parameters for storing file info');
   }
-};
 
-// Delete file from Firebase Storage
-const deleteFileFromStorage = async (fileId) => {
-  const fileRef = ref(storage, `files/${fileId}`);
-  await deleteObject(fileRef);
-};
+  try {
+    const fileData = {
+      fileId,
+      url,
+      expiration: expirationTimeStamp,
+      createdAt: serverTimestamp(),
+    };
 
-// Delete file info from Firestore
-const deleteFileFromFirestore = async (fileId) => {
-  await deleteDoc(doc(db, 'files', fileId));
+    await setDoc(doc(db, 'files', fileId), fileData);
+    return fileId;
+  } catch (error) {
+    console.error('Store metadata error:', error);
+    throw new Error(`Error saving file metadata: ${error.message}`);
+  }
 };
