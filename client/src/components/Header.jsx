@@ -12,7 +12,7 @@ const Header = ({ theme, toggleTheme }) => {
   return (
     <header className="bg-primary text-white p-4 flex justify-between items-center shadow-md">
       <div className="text-2xl font-bold">
-        SecureShare
+        SecShare
       </div>
       <div className="flex items-center space-x-4">
         <button
