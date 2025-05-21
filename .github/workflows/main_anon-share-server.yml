@@ -1,4 +1,4 @@
-name: Build & Deploy Node.js App (server/) → Azure Web App
+name: Build React client & Deploy Node.js server to Azure Web App
 
 on:
   push:
@@ -15,28 +15,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22.x
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
-      - name: Install deps in server/
+      - name: Install & Build React client (client/)
+        working-directory: client
+        run: |
+          npm install
+          npm run build
+
+      - name: Copy client build into server/public (for serving static files)
+        run: |
+          mkdir -p server/public
+          cp -r client/build/* server/public/
+
+      - name: Install server dependencies (server/)
         working-directory: server
         run: npm install
 
-      - name: (Optional) Build & Test in server/
+      - name: (Optional) Run server tests
         working-directory: server
-        run: |
-          npm run build --if-present
-          npm run test  --if-present
+        run: npm run test --if-present
 
-      - name: Zip server/ contents
+      - name: Zip server for deployment
         run: |
-          # Go into server/, zip its CONTENTS (not the folder itself)
           cd server
           zip -r ../artifact.zip ./*
 
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -53,25 +61,25 @@ jobs:
       contents: read
 
     steps:
-      - name: Download build artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
-      - name: Unzip into deploy_package/
+      - name: Unzip to deploy_package
         run: unzip artifact.zip -d deploy_package
 
-      - name: Azure Login
+      - name: Azure login
         uses: azure/login@v2
         with:
-          client-id:     ${{ secrets.AZUREAPPSERVICE_CLIENTID_320F8E2591CB4C89B3BAD31B7D3CCD56 }}
-          tenant-id:     ${{ secrets.AZUREAPPSERVICE_TENANTID_9C85620426BC45EE8B067A7DA380CF59 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_320F8E2591CB4C89B3BAD31B7D3CCD56 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9C85620426BC45EE8B067A7DA380CF59 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3BFC54E6592A458E8614C844D54DCEB7 }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name:    anon-share-server
-          slot-name:   Production
-          package:     ./deploy_package
+          app-name: 'anon-share-server'
+          slot-name: 'Production'
+          package: ./deploy_package
