@@ -10,29 +10,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js version
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test in server folder
+      - name: npm install, build, and test inside server folder
         run: |
           cd server
           npm install
           npm run build --if-present
           npm run test --if-present
 
-      - name: Zip artifact for deployment
+      - name: Zip the server folder for deployment
         run: |
           cd server
           zip -r ../release.zip ./*
 
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -45,7 +46,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
+      id-token: write # Required for Azure login
       contents: read
 
     steps:
@@ -54,7 +55,7 @@ jobs:
         with:
           name: node-app
 
-      - name: Unzip artifact for deployment
+      - name: Unzip the artifact
         run: unzip release.zip
 
       - name: Login to Azure
