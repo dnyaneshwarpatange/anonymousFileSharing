@@ -21,15 +21,17 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Install, build, and test inside server/
-        working-directory: ./server
+      - name: npm install, build and test inside server/
+        working-directory: ${{ github.workspace }}/server
         run: |
           npm install
           npm run build --if-present
           npm run test --if-present
 
-      - name: Zip server folder
-        run: zip -r release.zip ./server
+      - name: Zip server folder for deployment
+        run: |
+          cd server
+          zip -r ../release.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
