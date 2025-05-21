@@ -10,10 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Required for actions/checkout
+      contents: read
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -21,19 +21,17 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test inside server folder
+      - name: Install, build, and test inside server/
+        working-directory: ./server
         run: |
-          cd server
           npm install
           npm run build --if-present
           npm run test --if-present
 
-      - name: Zip the server folder for deployment
-        run: |
-          cd server
-          zip -r ../release.zip ./*
+      - name: Zip server folder
+        run: zip -r release.zip ./server
 
-      - name: Upload artifact for deployment
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -46,19 +44,19 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # Required for Azure login
+      id-token: write
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
-      - name: Unzip the artifact
+      - name: Unzip artifact
         run: unzip release.zip
 
-      - name: Login to Azure
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_320F8E2591CB4C89B3BAD31B7D3CCD56 }}
@@ -71,4 +69,4 @@ jobs:
         with:
           app-name: 'anon-share-server'
           slot-name: 'Production'
-          package: .
+          package: ./server
