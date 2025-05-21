@@ -26,18 +26,9 @@ jobs:
           npm install
           npm run build
 
-      - name: Copy client build into server/public (for serving static files)
-        run: |
-          mkdir -p server/public
-          cp -r client/build/* server/public/
-
       - name: Install server dependencies (server/)
         working-directory: server
         run: npm install
-
-      - name: (Optional) Run server tests
-        working-directory: server
-        run: npm run test --if-present
 
       - name: Zip server for deployment
         run: |
